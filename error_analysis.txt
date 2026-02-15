@@ -1,0 +1,83 @@
+ERROR ANALYSIS - DAY 7
+==============================
+
+Text: I love this movie, it is fantastic!
+True Label: 1, Pred: 1
+Confidence: 0.9960
+RESULT: SUCCESS
+--------------------
+Text: Great acting and wonderful plot.
+True Label: 1, Pred: 1
+Confidence: 0.9905
+RESULT: SUCCESS
+--------------------
+Text: Best film I have seen this year.
+True Label: 1, Pred: 1
+Confidence: 0.9957
+RESULT: SUCCESS
+--------------------
+Text: Amazing experience, highly recommended.
+True Label: 1, Pred: 1
+Confidence: 0.9945
+RESULT: SUCCESS
+--------------------
+Text: I really enjoyed this cinema masterpiece.
+True Label: 1, Pred: 1
+Confidence: 0.9959
+RESULT: SUCCESS
+--------------------
+Text: Terrible movie, waste of time.
+True Label: 0, Pred: 0
+Confidence: 0.9938
+RESULT: SUCCESS
+--------------------
+Text: I hated the plot and the acting was bad.
+True Label: 0, Pred: 0
+Confidence: 0.9940
+RESULT: SUCCESS
+--------------------
+Text: Worst film ever. Don't watch it.
+True Label: 0, Pred: 0
+Confidence: 0.9941
+RESULT: SUCCESS
+--------------------
+Text: Boring and predictable story.
+True Label: 0, Pred: 0
+Confidence: 0.9764
+RESULT: SUCCESS
+--------------------
+Text: I didn't like it at all, very disappointing.
+True Label: 0, Pred: 0
+Confidence: 0.9939
+RESULT: SUCCESS
+--------------------
+Text: The movie was okay, but a bit slow in the middle.
+True Label: 1, Pred: 0
+Confidence: 0.9741
+RESULT: ERROR
+--------------------
+Text: Not my favorite, but some parts were good.
+True Label: 1, Pred: 0
+Confidence: 0.7876
+RESULT: ERROR
+--------------------
+Text: I expected more from the director, honestly.
+True Label: 0, Pred: 0
+Confidence: 0.8175
+RESULT: LOW CONFIDENCE
+--------------------
+Text: Technically impressive but emotionally empty.
+True Label: 0, Pred: 0
+Confidence: 0.9701
+RESULT: SUCCESS
+--------------------
+Text: A mediocre attempt at a thriller.
+True Label: 0, Pred: 0
+Confidence: 0.9907
+RESULT: SUCCESS
+--------------------
+
+Summary:
+Total samples: 15
+Errors: 2
+Low confidence (<0.9): 1
