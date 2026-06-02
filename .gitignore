@@ -204,6 +204,7 @@ cython_debug/
 # Marimo
 marimo/_static/
 marimo/_lsp/
-__marimo__/fine_tuned_model/model.safetensors
+__marimo__/
+
 .DS_Store
-fine_tuned_model/model.safetensors
+Transformers/
