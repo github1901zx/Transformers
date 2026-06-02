@@ -4,7 +4,7 @@ import pandas as pd
 import joblib
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoModel
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
@@ -183,8 +183,36 @@ plt.tight_layout()
 plt.savefig('day_6/confusion_matrices.png')
 print("Матрицы ошибок сохранены в day_6/confusion_matrices.png")
 
-# Вывод итоговых метрик
-print(f"\nFine-tuned Accuracy: {accuracy_score(test_labels, y_pred_ft):.4f}")
-print(f"Fine-tuned F1 (macro): {f1_score(test_labels, y_pred_ft, average='macro'):.4f}")
-print(f"Baseline Accuracy: {accuracy_score(test_labels, y_pred_baseline):.4f}")
-print(f"Baseline F1 (macro): {f1_score(test_labels, y_pred_baseline, average='macro'):.4f}")
+# Вывод итоговых метрик и classification_report
+acc_ft = accuracy_score(test_labels, y_pred_ft)
+f1_ft = f1_score(test_labels, y_pred_ft, average='macro')
+acc_baseline = accuracy_score(test_labels, y_pred_baseline)
+f1_baseline = f1_score(test_labels, y_pred_baseline, average='macro')
+
+report_ft = classification_report(test_labels, y_pred_ft, target_names=['Negative', 'Positive'])
+report_baseline = classification_report(test_labels, y_pred_baseline, target_names=['Negative', 'Positive'])
+
+print(f"\nFine-tuned Accuracy: {acc_ft:.4f}")
+print(f"Fine-tuned F1 (macro): {f1_ft:.4f}")
+print("\nFine-tuned classification report:")
+print(report_ft)
+
+print(f"\nBaseline Accuracy: {acc_baseline:.4f}")
+print(f"Baseline F1 (macro): {f1_baseline:.4f}")
+print("\nBaseline classification report:")
+print(report_baseline)
+
+comparison_path = 'day_6/comparison_results.txt'
+with open(comparison_path, 'w', encoding='utf-8') as f:
+    f.write("=== Сравнение Fine-tuned и Baseline ===\n\n")
+    f.write(f"Fine-tuned Accuracy: {acc_ft:.4f}\n")
+    f.write(f"Fine-tuned F1 (macro): {f1_ft:.4f}\n\n")
+    f.write("Fine-tuned classification report:\n")
+    f.write(report_ft)
+    f.write("\n")
+    f.write(f"Baseline Accuracy: {acc_baseline:.4f}\n")
+    f.write(f"Baseline F1 (macro): {f1_baseline:.4f}\n\n")
+    f.write("Baseline classification report:\n")
+    f.write(report_baseline)
+
+print(f"\nРезультаты сравнения сохранены в {comparison_path}")

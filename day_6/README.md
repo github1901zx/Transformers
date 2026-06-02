@@ -21,8 +21,9 @@ python3 day_6/inference_comparison.py
 *   **Baseline модель:** Показывает аналогичную точность на данном небольшом наборе данных, используя эмбеддинги `[CLS]` токена.
 *   **Сравнение:** Обе модели успешно справились с классификацией тестовых примеров, таких как "This movie was absolutely fantastic!" (Положительный) и "Boring and too long" (Отрицательный).
 
-### Визуализация
-Матрицы ошибок для обеих моделей сохранены в файл `day_6/confusion_matrices.png`.
+### Визуализация и отчёты
+- Матрицы ошибок: `day_6/confusion_matrices.png`
+- Метрики и `classification_report` для обеих моделей: `day_6/comparison_results.txt`
 
 ---
 *Transformers Day 6*

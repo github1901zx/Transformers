@@ -1,5 +1,19 @@
 from transformers import AutoTokenizer
 
+def tokenize_texts(texts, max_length=128, model_name="bert-base-uncased"):
+    """
+    Батчевая токенизация списка текстов для подачи в модель.
+    Возвращает словарь PyTorch-тензоров (input_ids, attention_mask).
+    """
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    return tokenizer(
+        texts,
+        padding=True,
+        truncation=True,
+        max_length=max_length,
+        return_tensors="pt",
+    )
+
 def explain_tokenization(text, model_name="bert-base-uncased"):
     """
     Демонстрирует и объясняет процесс токенизации для заданного текста.
@@ -37,6 +51,15 @@ def explain_tokenization(text, model_name="bert-base-uncased"):
     print(f"  MASK (маскирование): {tokenizer.mask_token} (ID: {tokenizer.mask_token_id})")
 
 if __name__ == "__main__":
+    demo_texts = [
+        "Transformers are amazing and versatile!",
+        "Natural language processing is fascinating.",
+    ]
+    batch = tokenize_texts(demo_texts, max_length=128)
+    print("--- Батчевая токенизация (tokenize_texts) ---")
+    print(f"Input IDs shape: {batch['input_ids'].shape}")
+    print(f"Attention mask shape: {batch['attention_mask'].shape}\n")
+
     example_text = "Transformers are amazing and versatile!"
     explain_tokenization(example_text)
     
