@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 import torch
 import numpy as np
 import pandas as pd
@@ -7,6 +10,9 @@ from torch.optim import AdamW
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 import os
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from sentiment_data import get_labeled_data
 
 # ==========================================
 # ПОДГОТОВКА ДАННЫХ
@@ -26,22 +32,7 @@ class TextDataset(Dataset):
         return len(self.labels)
 
 def prepare_data():
-    data = {
-        'text': [
-            "I love this movie, it's fantastic!",
-            "Great acting and wonderful plot.",
-            "Best film I've seen this year.",
-            "Amazing experience, highly recommended.",
-            "I really enjoyed this cinema masterpiece.",
-            "Terrible movie, waste of time.",
-            "I hated the plot and the acting was bad.",
-            "Worst film ever. Don't watch it.",
-            "Boring and predictable story.",
-            "I didn't like it at all, very disappointing."
-        ] * 20, # 200 примеров
-        'label': [1, 1, 1, 1, 1, 0, 0, 0, 0, 0] * 20
-    }
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(get_labeled_data())
     
     train_texts, val_texts, train_labels, val_labels = train_test_split(
         df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=42, stratify=df['label']

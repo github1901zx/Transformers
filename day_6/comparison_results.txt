@@ -1,17 +1,17 @@
 === Сравнение Fine-tuned и Baseline ===
 
-Fine-tuned Accuracy: 1.0000
-Fine-tuned F1 (macro): 1.0000
+Fine-tuned Accuracy: 0.9167
+Fine-tuned F1 (macro): 0.9161
 
 Fine-tuned classification report:
               precision    recall  f1-score   support
 
-    Negative       1.00      1.00      1.00        20
-    Positive       1.00      1.00      1.00        20
+    Negative       0.86      1.00      0.92         6
+    Positive       1.00      0.83      0.91         6
 
-    accuracy                           1.00        40
-   macro avg       1.00      1.00      1.00        40
-weighted avg       1.00      1.00      1.00        40
+    accuracy                           0.92        12
+   macro avg       0.93      0.92      0.92        12
+weighted avg       0.93      0.92      0.92        12
 
 Baseline Accuracy: 1.0000
 Baseline F1 (macro): 1.0000
@@ -19,9 +19,9 @@ Baseline F1 (macro): 1.0000
 Baseline classification report:
               precision    recall  f1-score   support
 
-    Negative       1.00      1.00      1.00        20
-    Positive       1.00      1.00      1.00        20
+    Negative       1.00      1.00      1.00         6
+    Positive       1.00      1.00      1.00         6
 
-    accuracy                           1.00        40
-   macro avg       1.00      1.00      1.00        40
-weighted avg       1.00      1.00      1.00        40
+    accuracy                           1.00        12
+   macro avg       1.00      1.00      1.00        12
+weighted avg       1.00      1.00      1.00        12

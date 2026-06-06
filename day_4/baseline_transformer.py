@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 import torch
 import numpy as np
 import pandas as pd
@@ -5,6 +8,9 @@ from transformers import AutoTokenizer, AutoModel
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from sentiment_data import get_labeled_data
 
 # ==========================================
 # ЗАДАЧА 1: Токенизация текстов
@@ -81,23 +87,8 @@ print("-" * 30 + "\n")
 # ==========================================
 
 def run_baseline():
-    # 1. Подготовка датасета
-    data = {
-        'text': [
-            "I love this movie, it's fantastic!",
-            "Great acting and wonderful plot.",
-            "Best film I've seen this year.",
-            "Amazing experience, highly recommended.",
-            "I really enjoyed this cinema masterpiece.",
-            "Terrible movie, waste of time.",
-            "I hated the plot and the acting was bad.",
-            "Worst film ever. Don't watch it.",
-            "Boring and predictable story.",
-            "I didn't like it at all, very disappointing."
-        ] * 10, # Увеличим датасет до 100 примеров
-        'label': [1, 1, 1, 1, 1, 0, 0, 0, 0, 0] * 10
-    }
-    df = pd.DataFrame(data)
+    # 1. Подготовка датасета (60 уникальных текстов, без дубликатов)
+    df = pd.DataFrame(get_labeled_data())
 
     # 2. Извлечение текстов и меток
     texts = df['text'].tolist()

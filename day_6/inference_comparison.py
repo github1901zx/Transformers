@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+
 import torch
 import numpy as np
 import pandas as pd
@@ -8,6 +11,9 @@ from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, classifi
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from sentiment_data import get_labeled_data
 
 # ==========================================
 # ЗАДАЧА 1: Загрузка моделей
@@ -132,23 +138,8 @@ for i, text in enumerate(test_texts):
 
 print("\n--- Построение Confusion Matrix ---")
 
-# 1. Подготовка тестовых данных (воспроизводим тот же датасет, что и в Day 5)
-data = {
-    'text': [
-        "I love this movie, it's fantastic!",
-        "Great acting and wonderful plot.",
-        "Best film I've seen this year.",
-        "Amazing experience, highly recommended.",
-        "I really enjoyed this cinema masterpiece.",
-        "Terrible movie, waste of time.",
-        "I hated the plot and the acting was bad.",
-        "Worst film ever. Don't watch it.",
-        "Boring and predictable story.",
-        "I didn't like it at all, very disappointing."
-    ] * 20, 
-    'label': [1, 1, 1, 1, 1, 0, 0, 0, 0, 0] * 20
-}
-df = pd.DataFrame(data)
+# 1. Подготовка тестовых данных (тот же уникальный датасет, что и в Day 5)
+df = pd.DataFrame(get_labeled_data())
 _, test_df, _, _ = train_test_split(df, df['label'], test_size=0.2, random_state=42, stratify=df['label'])
 
 test_texts = test_df['text'].tolist()

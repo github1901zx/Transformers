@@ -1,7 +1,11 @@
+from pathlib import Path
+
 import torch
 import numpy as np
 from transformers import AutoTokenizer, AutoModel
 import matplotlib.pyplot as plt
+
+OUTPUT_DIR = Path(__file__).resolve().parent
 
 def get_embeddings(texts, tokenizer, model, batch_size=8):
     """
@@ -54,6 +58,30 @@ def cosine_similarity(v1, v2):
     v2 = v2.flatten()
     return torch.dot(v1, v2) / (torch.norm(v1) * torch.norm(v2))
 
+def text_similarity(text1, text2, tokenizer, model):
+    """
+    Вычисляет косинусное сходство между двумя текстами через CLS-эмбеддинги.
+    """
+    embeddings = get_embeddings([text1, text2], tokenizer, model)
+    v1 = torch.tensor(embeddings[0])
+    v2 = torch.tensor(embeddings[1])
+    return cosine_similarity(v1, v2).item()
+
+def demo_text_similarity(tokenizer, model):
+    """Демонстрация сходства целых текстов через get_embeddings."""
+    pairs = [
+        ("I love this movie, it's fantastic!", "Best film I've seen this year!"),
+        ("I love this movie, it's fantastic!", "Terrible movie, waste of time."),
+        ("The weather is sunny today.", "It is raining outside."),
+    ]
+
+    print("\n--- Сходство текстов (text_similarity) ---")
+    for text_a, text_b in pairs:
+        score = text_similarity(text_a, text_b, tokenizer, model)
+        print(f"'{text_a}'")
+        print(f"  vs '{text_b}'")
+        print(f"  Cosine similarity: {score:.4f}\n")
+
 def demo_similarity():
     model_name = "bert-base-uncased"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -101,8 +129,9 @@ def visualize_hidden_states(all_hidden, tokens):
     plt.xlabel("Номер слоя (0 - Embedding Layer)")
     plt.ylabel("Среднее значение активации")
     plt.grid(True)
-    plt.savefig("day_2/layer_activations.png")
-    print("\nГрафик активаций слоев сохранен в 'day_2/layer_activations.png'")
+    output_path = OUTPUT_DIR / "layer_activations.png"
+    plt.savefig(output_path)
+    print(f"\nГрафик активаций слоев сохранен в '{output_path}'")
 
 if __name__ == "__main__":
     model_name = "bert-base-uncased"
@@ -128,4 +157,5 @@ if __name__ == "__main__":
         print(f"Token: {token:12} | Vec: [{formatted_vec}, ...]")
 
     visualize_hidden_states(all_hidden, tokens)
+    demo_text_similarity(tokenizer, model)
     demo_similarity()

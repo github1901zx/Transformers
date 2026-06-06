@@ -1,2 +1,2 @@
-Final Validation F1: 1.0000
-Final Validation Accuracy: 1.0000
+Final Validation F1: 0.9161
+Final Validation Accuracy: 0.9167
