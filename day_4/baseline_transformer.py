@@ -3,14 +3,13 @@ from pathlib import Path
 
 import torch
 import numpy as np
-import pandas as pd
 from transformers import AutoTokenizer, AutoModel
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, f1_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from sentiment_data import get_labeled_data
+from sentiment_data import load_sentiment_dataset
 
 # ==========================================
 # ЗАДАЧА 1: Токенизация текстов
@@ -88,7 +87,7 @@ print("-" * 30 + "\n")
 
 def run_baseline():
     # 1. Подготовка датасета (60 уникальных текстов, без дубликатов)
-    df = pd.DataFrame(get_labeled_data())
+    df = load_sentiment_dataset()
 
     # 2. Извлечение текстов и меток
     texts = df['text'].tolist()

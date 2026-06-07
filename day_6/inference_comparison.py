@@ -10,47 +10,51 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from sentiment_data import get_labeled_data
+from sentiment_data import load_sentiment_dataset
 
-# ==========================================
-# ЗАДАЧА 1: Загрузка моделей
-# ==========================================
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+RANDOM_SEED = 42
+BASELINE_MODEL_NAME = "distilbert-base-uncased"
+BASELINE_MODEL_REVISION = "12040accade4e8a0f71eabdb258fecc2e7e948be"
 
-print("Загрузка моделей...")
 
-# 1. Загрузка fine-tuned модели
-model_ft = AutoModelForSequenceClassification.from_pretrained('./fine_tuned_model')
-tokenizer_ft = AutoTokenizer.from_pretrained('./fine_tuned_model')
-model_ft.eval()
+def get_device():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.backends.mps.is_available():
+        device = torch.device('mps')
+    return device
 
-# Перемещение на доступное устройство
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-if torch.backends.mps.is_available():
-    device = torch.device('mps')
-model_ft.to(device)
 
-# 2. Загрузка baseline модели
-# В нашей реализации baseline использует DistilBERT как экстрактор эмбеддингов
-baseline_model = joblib.load('baseline_model.pkl')
-# В качестве "vectorizer" для baseline мы используем базовый DistilBERT
-baseline_feature_extractor = AutoModel.from_pretrained("distilbert-base-uncased")
-baseline_feature_extractor.eval()
-baseline_feature_extractor.to(device)
-baseline_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+def load_models(device):
+    """Загружает fine-tuned и baseline модели."""
+    model_ft = AutoModelForSequenceClassification.from_pretrained(
+        PROJECT_ROOT / 'fine_tuned_model'
+    )
+    tokenizer_ft = AutoTokenizer.from_pretrained(PROJECT_ROOT / 'fine_tuned_model')
+    model_ft.eval()
+    model_ft.to(device)
 
-# ==========================================
-# ЗАДАЧА 2: Функция предсказания для fine-tuned
-# ==========================================
+    baseline_model = joblib.load(PROJECT_ROOT / 'baseline_model.pkl')
+    baseline_feature_extractor = AutoModel.from_pretrained(
+        BASELINE_MODEL_NAME, revision=BASELINE_MODEL_REVISION
+    )
+    baseline_feature_extractor.eval()
+    baseline_feature_extractor.to(device)
+    baseline_tokenizer = AutoTokenizer.from_pretrained(
+        BASELINE_MODEL_NAME, revision=BASELINE_MODEL_REVISION
+    )
 
-def predict_fine_tuned(texts, model, tokenizer):
+    return model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor, baseline_tokenizer
+
+
+def predict_fine_tuned(texts, model, tokenizer, device):
     if isinstance(texts, str):
         texts = [texts]
 
     predictions = []
-    
+
     for text in texts:
         inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
         inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -69,30 +73,25 @@ def predict_fine_tuned(texts, model, tokenizer):
 
     return predictions
 
-# ==========================================
-# ЗАДАЧА 3: Функция предсказания для baseline
-# ==========================================
 
-def predict_baseline(texts, model, feature_extractor, tokenizer, clean_func=None):
+def predict_baseline(texts, model, feature_extractor, tokenizer, device, clean_func=None):
     if isinstance(texts, str):
         texts = [texts]
 
     if clean_func:
         texts = [clean_func(t) for t in texts]
 
-    # Извлечение эмбеддингов (аналог vectorizer.transform)
     embeddings = []
     for text in texts:
         inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128)
         inputs = {k: v.to(device) for k, v in inputs.items()}
-        
+
         with torch.no_grad():
             outputs = feature_extractor(**inputs)
-        
-        # CLS токен
+
         cls_output = outputs.last_hidden_state[:, 0, :].cpu().numpy()
         embeddings.append(cls_output)
-    
+
     X = np.vstack(embeddings)
     predictions = model.predict(X)
     probs = model.predict_proba(X) if hasattr(model, 'predict_proba') else None
@@ -107,103 +106,119 @@ def predict_baseline(texts, model, feature_extractor, tokenizer, clean_func=None
 
     return results
 
-# ==========================================
-# ЗАДАЧА 4: Сравнение на примерах
-# ==========================================
 
-print("\n--- Сравнение на тестовых примерах ---")
-test_texts = [
-    "This movie was absolutely fantastic!",
-    "Terrible, waste of my time.",
-    "It was okay, nothing special.",
-    "Best film I've seen this year!",
-    "Boring and too long."
-]
+def compare_examples(model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor,
+                     baseline_tokenizer, device):
+    print("\n--- Сравнение на тестовых примерах ---")
+    test_texts = [
+        "This movie was absolutely fantastic!",
+        "Terrible, waste of my time.",
+        "It was okay, nothing special.",
+        "Best film I've seen this year!",
+        "Boring and too long."
+    ]
 
-# Fine-tuned predictions
-preds_ft = predict_fine_tuned(test_texts, model_ft, tokenizer_ft)
+    preds_ft = predict_fine_tuned(test_texts, model_ft, tokenizer_ft, device)
+    preds_baseline = predict_baseline(
+        test_texts, baseline_model, baseline_feature_extractor, baseline_tokenizer, device
+    )
 
-# Baseline predictions
-preds_baseline = predict_baseline(test_texts, baseline_model, baseline_feature_extractor, baseline_tokenizer)
+    for i, text in enumerate(test_texts):
+        print(f'\nТекст: {text}')
+        print(f'Fine-tuned: {preds_ft[i]["prediction"]} (probs: {preds_ft[i]["probabilities"]})')
+        print(f'Baseline: {preds_baseline[i]["prediction"]}')
+        print(f'Совпадают: {preds_ft[i]["prediction"] == preds_baseline[i]["prediction"]}')
 
-for i, text in enumerate(test_texts):
-    print(f'\nТекст: {text}')
-    print(f'Fine-tuned: {preds_ft[i]["prediction"]} (probs: {preds_ft[i]["probabilities"]})')
-    print(f'Baseline: {preds_baseline[i]["prediction"]}')
-    print(f'Совпадают: {preds_ft[i]["prediction"] == preds_baseline[i]["prediction"]}')
 
-# ==========================================
-# ЗАДАЧА 5: Confusion Matrix для обеих моделей
-# ==========================================
+def build_confusion_matrices(model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor,
+                             baseline_tokenizer, device):
+    print("\n--- Построение Confusion Matrix ---")
 
-print("\n--- Построение Confusion Matrix ---")
+    df = load_sentiment_dataset()
+    _, test_df, _, _ = train_test_split(
+        df, df['label'], test_size=0.2, random_state=RANDOM_SEED, stratify=df['label']
+    )
 
-# 1. Подготовка тестовых данных (тот же уникальный датасет, что и в Day 5)
-df = pd.DataFrame(get_labeled_data())
-_, test_df, _, _ = train_test_split(df, df['label'], test_size=0.2, random_state=42, stratify=df['label'])
+    test_texts = test_df['text'].tolist()
+    test_labels = test_df['label'].tolist()
 
-test_texts = test_df['text'].tolist()
-test_labels = test_df['label'].tolist()
+    print("Получение предсказаний для тестового набора...")
+    preds_ft_all = predict_fine_tuned(test_texts, model_ft, tokenizer_ft, device)
+    y_pred_ft = [p['prediction'] for p in preds_ft_all]
 
-# 2. Получение предсказаний
-print("Получение предсказаний для тестового набора...")
-preds_ft_all = predict_fine_tuned(test_texts, model_ft, tokenizer_ft)
-y_pred_ft = [p['prediction'] for p in preds_ft_all]
+    preds_baseline_all = predict_baseline(
+        test_texts, baseline_model, baseline_feature_extractor, baseline_tokenizer, device
+    )
+    y_pred_baseline = [p['prediction'] for p in preds_baseline_all]
 
-preds_baseline_all = predict_baseline(test_texts, baseline_model, baseline_feature_extractor, baseline_tokenizer)
-y_pred_baseline = [p['prediction'] for p in preds_baseline_all]
+    cm_ft = confusion_matrix(test_labels, y_pred_ft)
+    cm_baseline = confusion_matrix(test_labels, y_pred_baseline)
 
-# 3. Построение confusion matrix
-cm_ft = confusion_matrix(test_labels, y_pred_ft)
-cm_baseline = confusion_matrix(test_labels, y_pred_baseline)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-# Визуализация
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    sns.heatmap(cm_ft, annot=True, fmt='d', ax=ax1, cmap='Blues')
+    ax1.set_title('Fine-tuned Confusion Matrix')
+    ax1.set_xlabel('Predicted')
+    ax1.set_ylabel('True')
 
-sns.heatmap(cm_ft, annot=True, fmt='d', ax=ax1, cmap='Blues')
-ax1.set_title('Fine-tuned Confusion Matrix')
-ax1.set_xlabel('Predicted')
-ax1.set_ylabel('True')
+    sns.heatmap(cm_baseline, annot=True, fmt='d', ax=ax2, cmap='Greens')
+    ax2.set_title('Baseline Confusion Matrix')
+    ax2.set_xlabel('Predicted')
+    ax2.set_ylabel('True')
 
-sns.heatmap(cm_baseline, annot=True, fmt='d', ax=ax2, cmap='Greens')
-ax2.set_title('Baseline Confusion Matrix')
-ax2.set_xlabel('Predicted')
-ax2.set_ylabel('True')
+    plt.tight_layout()
+    output_path = PROJECT_ROOT / 'day_6' / 'confusion_matrices.png'
+    plt.savefig(output_path)
+    print(f"Матрицы ошибок сохранены в {output_path}")
 
-plt.tight_layout()
-plt.savefig('day_6/confusion_matrices.png')
-print("Матрицы ошибок сохранены в day_6/confusion_matrices.png")
+    acc_ft = accuracy_score(test_labels, y_pred_ft)
+    f1_ft = f1_score(test_labels, y_pred_ft, average='macro')
+    acc_baseline = accuracy_score(test_labels, y_pred_baseline)
+    f1_baseline = f1_score(test_labels, y_pred_baseline, average='macro')
 
-# Вывод итоговых метрик и classification_report
-acc_ft = accuracy_score(test_labels, y_pred_ft)
-f1_ft = f1_score(test_labels, y_pred_ft, average='macro')
-acc_baseline = accuracy_score(test_labels, y_pred_baseline)
-f1_baseline = f1_score(test_labels, y_pred_baseline, average='macro')
+    report_ft = classification_report(test_labels, y_pred_ft, target_names=['Negative', 'Positive'])
+    report_baseline = classification_report(
+        test_labels, y_pred_baseline, target_names=['Negative', 'Positive']
+    )
 
-report_ft = classification_report(test_labels, y_pred_ft, target_names=['Negative', 'Positive'])
-report_baseline = classification_report(test_labels, y_pred_baseline, target_names=['Negative', 'Positive'])
+    print(f"\nFine-tuned Accuracy: {acc_ft:.4f}")
+    print(f"Fine-tuned F1 (macro): {f1_ft:.4f}")
+    print("\nFine-tuned classification report:")
+    print(report_ft)
 
-print(f"\nFine-tuned Accuracy: {acc_ft:.4f}")
-print(f"Fine-tuned F1 (macro): {f1_ft:.4f}")
-print("\nFine-tuned classification report:")
-print(report_ft)
+    print(f"\nBaseline Accuracy: {acc_baseline:.4f}")
+    print(f"Baseline F1 (macro): {f1_baseline:.4f}")
+    print("\nBaseline classification report:")
+    print(report_baseline)
 
-print(f"\nBaseline Accuracy: {acc_baseline:.4f}")
-print(f"Baseline F1 (macro): {f1_baseline:.4f}")
-print("\nBaseline classification report:")
-print(report_baseline)
+    comparison_path = PROJECT_ROOT / 'day_6' / 'comparison_results.txt'
+    with open(comparison_path, 'w', encoding='utf-8') as f:
+        f.write("=== Сравнение Fine-tuned и Baseline ===\n\n")
+        f.write(f"Fine-tuned Accuracy: {acc_ft:.4f}\n")
+        f.write(f"Fine-tuned F1 (macro): {f1_ft:.4f}\n\n")
+        f.write("Fine-tuned classification report:\n")
+        f.write(report_ft)
+        f.write("\n")
+        f.write(f"Baseline Accuracy: {acc_baseline:.4f}\n")
+        f.write(f"Baseline F1 (macro): {f1_baseline:.4f}\n\n")
+        f.write("Baseline classification report:\n")
+        f.write(report_baseline)
 
-comparison_path = 'day_6/comparison_results.txt'
-with open(comparison_path, 'w', encoding='utf-8') as f:
-    f.write("=== Сравнение Fine-tuned и Baseline ===\n\n")
-    f.write(f"Fine-tuned Accuracy: {acc_ft:.4f}\n")
-    f.write(f"Fine-tuned F1 (macro): {f1_ft:.4f}\n\n")
-    f.write("Fine-tuned classification report:\n")
-    f.write(report_ft)
-    f.write("\n")
-    f.write(f"Baseline Accuracy: {acc_baseline:.4f}\n")
-    f.write(f"Baseline F1 (macro): {f1_baseline:.4f}\n\n")
-    f.write("Baseline classification report:\n")
-    f.write(report_baseline)
+    print(f"\nРезультаты сравнения сохранены в {comparison_path}")
 
-print(f"\nРезультаты сравнения сохранены в {comparison_path}")
+
+def main():
+    print("Загрузка моделей...")
+    device = get_device()
+    model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor, baseline_tokenizer = load_models(device)
+
+    compare_examples(
+        model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor, baseline_tokenizer, device
+    )
+    build_confusion_matrices(
+        model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor, baseline_tokenizer, device
+    )
+
+
+if __name__ == "__main__":
+    main()

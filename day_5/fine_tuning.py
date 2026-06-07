@@ -1,18 +1,22 @@
+import random
 import sys
 from pathlib import Path
 
 import torch
 import numpy as np
-import pandas as pd
 from torch.utils.data import DataLoader, Dataset
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, get_linear_schedule_with_warmup
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.optim import AdamW
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 import os
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from sentiment_data import get_labeled_data
+from sentiment_data import load_sentiment_dataset
+
+MODEL_NAME = "distilbert-base-uncased"
+MODEL_REVISION = "12040accade4e8a0f71eabdb258fecc2e7e948be"
+RANDOM_SEED = 42
 
 # ==========================================
 # ПОДГОТОВКА ДАННЫХ
@@ -31,13 +35,24 @@ class TextDataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def prepare_data():
-    df = pd.DataFrame(get_labeled_data())
-    
+    df = load_sentiment_dataset()
+
     train_texts, val_texts, train_labels, val_labels = train_test_split(
-        df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=42, stratify=df['label']
+        df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=RANDOM_SEED, stratify=df['label']
     )
-    
+
     return train_texts, val_texts, train_labels, val_labels
 
 # ==========================================
@@ -52,29 +67,30 @@ def train_epoch(model, loader, optimizer, device):
         input_ids = batch['input_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
         labels = batch['labels'].to(device)
-        
+
         outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
         loss = outputs.loss
         loss.backward()
         optimizer.step()
-        
+
         total_loss += loss.item()
     return total_loss / len(loader)
+
 
 def evaluate(model, loader, device):
     model.eval()
     predictions = []
     true_labels = []
-    
+
     with torch.no_grad():
         for batch in loader:
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
-            
+
             outputs = model(input_ids, attention_mask=attention_mask)
             preds = torch.argmax(outputs.logits, dim=1)
-            
+
             predictions.extend(preds.cpu().numpy())
             true_labels.extend(labels.cpu().numpy())
 
@@ -83,33 +99,35 @@ def evaluate(model, loader, device):
 
     return accuracy, f1
 
+
 def main():
-    # Настройки
-    model_name = "distilbert-base-uncased"
+    set_seed(RANDOM_SEED)
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if torch.backends.mps.is_available():
         device = torch.device('mps')
-    
+
     print(f"Using device: {device}")
-    
-    # 1. Загрузка токенизатора и данных
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    print(f"Model: {MODEL_NAME} (revision: {MODEL_REVISION})")
+
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, revision=MODEL_REVISION)
     train_texts, val_texts, train_labels, val_labels = prepare_data()
-    
+
     train_dataset = TextDataset(train_texts, train_labels, tokenizer)
     val_dataset = TextDataset(val_texts, val_labels, tokenizer)
-    
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+
+    generator = torch.Generator()
+    generator.manual_seed(RANDOM_SEED)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, generator=generator)
     val_loader = DataLoader(val_dataset, batch_size=16)
-    
-    # 2. Загрузка модели
-    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
+
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME, num_labels=2, revision=MODEL_REVISION
+    )
     model.to(device)
-    
-    # 3. Оптимизатор
+
     optimizer = AdamW(model.parameters(), lr=5e-5)
-    
-    # ЗАДАЧА 7: Обучение модели
+
     num_epochs = 3
     print(f"\nStarting training for {num_epochs} epochs...")
 
@@ -123,22 +141,24 @@ def main():
         print(f'Val F1: {val_f1:.4f}')
         print('-' * 50)
 
-    # ЗАДАЧА 8: Сохранение модели
     print("\nSaving model and metrics...")
     save_path = './fine_tuned_model'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-        
+
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
 
-    # Сохранение метрик
     with open('fine_tuned_results.txt', 'w') as f:
+        f.write(f'Model: {MODEL_NAME}\n')
+        f.write(f'Revision: {MODEL_REVISION}\n')
+        f.write(f'Random seed: {RANDOM_SEED}\n')
         f.write(f'Final Validation F1: {val_f1:.4f}\n')
         f.write(f'Final Validation Accuracy: {val_acc:.4f}\n')
-    
+
     print(f"Model saved to {save_path}")
     print("Metrics saved to fine_tuned_results.txt")
+
 
 if __name__ == "__main__":
     main()
