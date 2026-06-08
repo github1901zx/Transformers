@@ -9,14 +9,16 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from torch.optim import AdamW
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
-import os
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sentiment_data import load_sentiment_dataset
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_NAME = "distilbert-base-uncased"
 MODEL_REVISION = "12040accade4e8a0f71eabdb258fecc2e7e948be"
 RANDOM_SEED = 42
+DEFAULT_SAVE_PATH = PROJECT_ROOT / "fine_tuned_model"
+RESULTS_PATH = PROJECT_ROOT / "fine_tuned_results.txt"
 
 # ==========================================
 # ПОДГОТОВКА ДАННЫХ
@@ -44,6 +46,13 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def get_device():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.backends.mps.is_available():
+        device = torch.device('mps')
+    return device
 
 
 def prepare_data():
@@ -100,12 +109,11 @@ def evaluate(model, loader, device):
     return accuracy, f1
 
 
-def main():
+def run_fine_tuning(save_path=None, num_epochs=3):
     set_seed(RANDOM_SEED)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    if torch.backends.mps.is_available():
-        device = torch.device('mps')
+    save_path = Path(save_path) if save_path is not None else DEFAULT_SAVE_PATH
+    device = get_device()
 
     print(f"Using device: {device}")
     print(f"Model: {MODEL_NAME} (revision: {MODEL_REVISION})")
@@ -128,7 +136,6 @@ def main():
 
     optimizer = AdamW(model.parameters(), lr=5e-5)
 
-    num_epochs = 3
     print(f"\nStarting training for {num_epochs} epochs...")
 
     for epoch in range(num_epochs):
@@ -142,14 +149,12 @@ def main():
         print('-' * 50)
 
     print("\nSaving model and metrics...")
-    save_path = './fine_tuned_model'
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    save_path.mkdir(parents=True, exist_ok=True)
 
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
 
-    with open('fine_tuned_results.txt', 'w') as f:
+    with open(RESULTS_PATH, 'w') as f:
         f.write(f'Model: {MODEL_NAME}\n')
         f.write(f'Revision: {MODEL_REVISION}\n')
         f.write(f'Random seed: {RANDOM_SEED}\n')
@@ -157,7 +162,17 @@ def main():
         f.write(f'Final Validation Accuracy: {val_acc:.4f}\n')
 
     print(f"Model saved to {save_path}")
-    print("Metrics saved to fine_tuned_results.txt")
+    print(f"Metrics saved to {RESULTS_PATH}")
+
+    return {
+        "save_path": save_path,
+        "val_accuracy": val_acc,
+        "val_f1": val_f1,
+    }
+
+
+def main():
+    run_fine_tuning()
 
 
 if __name__ == "__main__":

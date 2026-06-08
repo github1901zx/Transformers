@@ -13,6 +13,7 @@ import seaborn as sns
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sentiment_data import load_sentiment_dataset
+from model_artifacts import ensure_fine_tuned_model, FINE_TUNED_MODEL_DIR
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RANDOM_SEED = 42
@@ -29,10 +30,10 @@ def get_device():
 
 def load_models(device):
     """Загружает fine-tuned и baseline модели."""
-    model_ft = AutoModelForSequenceClassification.from_pretrained(
-        PROJECT_ROOT / 'fine_tuned_model'
-    )
-    tokenizer_ft = AutoTokenizer.from_pretrained(PROJECT_ROOT / 'fine_tuned_model')
+    ensure_fine_tuned_model()
+
+    model_ft = AutoModelForSequenceClassification.from_pretrained(FINE_TUNED_MODEL_DIR)
+    tokenizer_ft = AutoTokenizer.from_pretrained(FINE_TUNED_MODEL_DIR)
     model_ft.eval()
     model_ft.to(device)
 

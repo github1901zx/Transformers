@@ -208,3 +208,7 @@ __marimo__/
 
 .DS_Store
 Transformers/
+
+# Веса fine-tuned модели (~268 MB) не хранятся в Git.
+# Они создаются локально через day_5/fine_tuning.py или ensure_fine_tuned_model().
+fine_tuned_model/model.safetensors

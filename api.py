@@ -1,18 +1,32 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 
-app = FastAPI()
+from model_artifacts import ensure_fine_tuned_model, FINE_TUNED_MODEL_DIR
 
-# Загрузка модели и токенизатора
-MODEL_PATH = './fine_tuned_model'
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model.eval()
+model = None
+tokenizer = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model, tokenizer
+    ensure_fine_tuned_model()
+    model = AutoModelForSequenceClassification.from_pretrained(FINE_TUNED_MODEL_DIR)
+    tokenizer = AutoTokenizer.from_pretrained(FINE_TUNED_MODEL_DIR)
+    model.eval()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
 
 class PredictionRequest(BaseModel):
     text: str
+
 
 @app.post("/predict")
 def predict(request: PredictionRequest):
@@ -24,9 +38,6 @@ def predict(request: PredictionRequest):
     probs = torch.nn.functional.softmax(outputs.logits, dim=1)
     pred = torch.argmax(probs, dim=1).item()
 
-    # В нашем случае 0 - Negative, 1 - Positive (исходя из Day 4/5)
-    # В описании задачи Day 7 упомянут Neutral, но наш датасет был бинарным.
-    # Оставим label_map гибким.
     label_map = {0: 'Negative', 1: 'Positive'}
 
     return {
@@ -37,6 +48,7 @@ def predict(request: PredictionRequest):
             for i in range(len(probs[0]))
         }
     }
+
 
 if __name__ == "__main__":
     import uvicorn
