@@ -1,5 +1,6 @@
 Baseline Results (Logistic Regression on CLS embeddings)
 Model: distilbert-base-uncased
+Revision: 12040accade4e8a0f71eabdb258fecc2e7e948be
 Macro F1 Score: 1.0000
 
 Classification Report:

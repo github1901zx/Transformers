@@ -11,8 +11,9 @@
 - `day_5/` — Fine-tuning: Дообучение DistilBERT на специфическом датасете.
 - `day_6/` — Инференс и сравнение Baseline vs Fine-tuned моделей.
 - `day_7/` — Анализ ошибок и создание API (FastAPI).
-- `fine_tuned_model/` — Конфиг и токенизатор fine-tuned модели (веса создаются локально).
-- `model_artifacts.py` — Проверка и автоматическое восстановление весов модели.
+- `fine_tuned_model/` — Чекпоинт fine-tuned модели (config, tokenizer, `model.safetensors`).
+- `baseline_model/` — Чекпоинт baseline (classifier, tokenizer, metadata с revision).
+- `model_artifacts.py` — Проверка наличия сохранённых артефактов перед инференсом.
 - `sentiment_dataset.csv` — CSV-датасет с колонками `text` и `label`.
 - `api.py` — FastAPI приложение для предсказаний.
 - `error_analysis.txt` — Результаты анализа сложных случаев для модели.
@@ -31,17 +32,17 @@
 
 ## Артефакты моделей
 
-Файл `fine_tuned_model/model.safetensors` (~268 MB) **не хранится в Git**: GitHub не принимает такие файлы без LFS, а LFS pointer без подтянутого объекта ломает загрузку модели.
-
-Вместо этого веса **воспроизводимо генерируются локально** с фиксированным seed и revision базовой модели:
+Перед инференсом (день 6, API) должны быть сохранены оба чекпоинта:
 
 ```bash
-python day_5/fine_tuning.py
+python day_4/baseline_transformer.py   # baseline_model/
+python day_5/fine_tuning.py            # fine_tuned_model/ + model.safetensors
+python day_6/inference_comparison.py   # только загрузка, без обучения
 ```
 
-Скрипты `day_6/inference_comparison.py` и `api.py` перед загрузкой вызывают `ensure_fine_tuned_model()`: если весов нет или вместо них лежит Git LFS pointer, fine-tuning запускается автоматически.
+`fine_tuned_model/model.safetensors` (~268 MB) хранится через Git LFS. После `git clone` выполните `git lfs pull`, иначе вместо весов останется LFS pointer.
 
-Ожидаемые метрики после обучения — в `fine_tuned_results.txt`.
+Скрипт дня 6 **не переобучает** модели: при отсутствии артефактов выдаёт понятную ошибку с инструкцией.
 
 ## Запуск демо
 

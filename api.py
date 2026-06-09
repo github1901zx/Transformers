@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import torch
 
-from model_artifacts import ensure_fine_tuned_model, FINE_TUNED_MODEL_DIR
+from model_artifacts import require_fine_tuned_model, FINE_TUNED_MODEL_DIR
 
 model = None
 tokenizer = None
@@ -14,7 +14,7 @@ tokenizer = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, tokenizer
-    ensure_fine_tuned_model()
+    require_fine_tuned_model()
     model = AutoModelForSequenceClassification.from_pretrained(FINE_TUNED_MODEL_DIR)
     tokenizer = AutoTokenizer.from_pretrained(FINE_TUNED_MODEL_DIR)
     model.eval()

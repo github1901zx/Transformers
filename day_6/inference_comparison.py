@@ -3,9 +3,7 @@ from pathlib import Path
 
 import torch
 import numpy as np
-import pandas as pd
-import joblib
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoModel
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, classification_report
 import matplotlib.pyplot as plt
@@ -13,12 +11,14 @@ import seaborn as sns
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sentiment_data import load_sentiment_dataset
-from model_artifacts import ensure_fine_tuned_model, FINE_TUNED_MODEL_DIR
+from model_artifacts import (
+    require_fine_tuned_model,
+    load_baseline_artifacts,
+    FINE_TUNED_MODEL_DIR,
+)
+from model_config import RANDOM_SEED
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-RANDOM_SEED = 42
-BASELINE_MODEL_NAME = "distilbert-base-uncased"
-BASELINE_MODEL_REVISION = "12040accade4e8a0f71eabdb258fecc2e7e948be"
 
 
 def get_device():
@@ -29,23 +29,15 @@ def get_device():
 
 
 def load_models(device):
-    """Загружает fine-tuned и baseline модели."""
-    ensure_fine_tuned_model()
+    """Загружает ранее сохранённые fine-tuned и baseline модели."""
+    require_fine_tuned_model()
 
     model_ft = AutoModelForSequenceClassification.from_pretrained(FINE_TUNED_MODEL_DIR)
     tokenizer_ft = AutoTokenizer.from_pretrained(FINE_TUNED_MODEL_DIR)
     model_ft.eval()
     model_ft.to(device)
 
-    baseline_model = joblib.load(PROJECT_ROOT / 'baseline_model.pkl')
-    baseline_feature_extractor = AutoModel.from_pretrained(
-        BASELINE_MODEL_NAME, revision=BASELINE_MODEL_REVISION
-    )
-    baseline_feature_extractor.eval()
-    baseline_feature_extractor.to(device)
-    baseline_tokenizer = AutoTokenizer.from_pretrained(
-        BASELINE_MODEL_NAME, revision=BASELINE_MODEL_REVISION
-    )
+    baseline_model, baseline_feature_extractor, baseline_tokenizer, _ = load_baseline_artifacts(device)
 
     return model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor, baseline_tokenizer
 
@@ -209,7 +201,7 @@ def build_confusion_matrices(model_ft, tokenizer_ft, baseline_model, baseline_fe
 
 
 def main():
-    print("Загрузка моделей...")
+    print("Загрузка сохранённых моделей...")
     device = get_device()
     model_ft, tokenizer_ft, baseline_model, baseline_feature_extractor, baseline_tokenizer = load_models(device)
 

@@ -23,7 +23,7 @@ python3 day_4/baseline_transformer.py
 Функция `get_cls_embeddings` прогоняет тексты через модель `distilbert-base-uncased` и извлекает первый вектор из последовательности (`[CLS]`), который обычно используется как агрегированное представление всего предложения.
 
 ### Задача 3: Логистическая регрессия
-Мы используем `scikit-learn` для разделения данных и обучения классификатора. Результаты (метрика Macro F1 и отчет) сохраняются в файл `day_4/baseline_results.txt`.
+Мы используем `scikit-learn` для разделения данных и обучения классификатора. Результаты сохраняются в `day_4/baseline_results.txt`, а полный чекпоинт — в `baseline_model/` (classifier, tokenizer, metadata с revision базовой модели).
 
 ---
 *Transformers Day 4*

@@ -12,11 +12,9 @@ from sklearn.metrics import accuracy_score, f1_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sentiment_data import load_sentiment_dataset
+from model_config import MODEL_NAME, MODEL_REVISION, RANDOM_SEED
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODEL_NAME = "distilbert-base-uncased"
-MODEL_REVISION = "12040accade4e8a0f71eabdb258fecc2e7e948be"
-RANDOM_SEED = 42
 DEFAULT_SAVE_PATH = PROJECT_ROOT / "fine_tuned_model"
 RESULTS_PATH = PROJECT_ROOT / "fine_tuned_results.txt"
 
