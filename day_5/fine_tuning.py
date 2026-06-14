@@ -13,6 +13,7 @@ from sklearn.metrics import accuracy_score, f1_score
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sentiment_data import load_sentiment_dataset
 from model_config import MODEL_NAME, MODEL_REVISION, RANDOM_SEED
+from model_artifacts import has_valid_weights, WEIGHTS_FILE
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_SAVE_PATH = PROJECT_ROOT / "fine_tuned_model"
@@ -151,6 +152,12 @@ def run_fine_tuning(save_path=None, num_epochs=3):
 
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
+
+    if not has_valid_weights():
+        raise RuntimeError(
+            f"Чекпоинт сохранён неполностью: отсутствует {WEIGHTS_FILE.name}. "
+            f"Ожидается model.safetensors или pytorch_model.bin в {save_path}."
+        )
 
     with open(RESULTS_PATH, 'w') as f:
         f.write(f'Model: {MODEL_NAME}\n')

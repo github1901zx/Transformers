@@ -13,6 +13,7 @@ from sklearn.metrics import classification_report, f1_score
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sentiment_data import load_sentiment_dataset
 from model_config import MODEL_NAME, MODEL_REVISION, RANDOM_SEED
+from model_artifacts import has_baseline_artifacts
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BASELINE_DIR = PROJECT_ROOT / "baseline_model"
@@ -86,6 +87,11 @@ def save_baseline_artifacts(classifier, tokenizer):
     }
     with open(BASELINE_DIR / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
+
+    if not has_baseline_artifacts():
+        raise RuntimeError(
+            f"Baseline сохранён неполностью. Проверьте содержимое {BASELINE_DIR}."
+        )
 
     print(f"Baseline артефакты сохранены в {BASELINE_DIR}")
 

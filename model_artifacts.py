@@ -6,8 +6,6 @@ from pathlib import Path
 import joblib
 from transformers import AutoModel, AutoTokenizer
 
-from model_config import MODEL_NAME, MODEL_REVISION
-
 PROJECT_ROOT = Path(__file__).resolve().parent
 FINE_TUNED_MODEL_DIR = PROJECT_ROOT / "fine_tuned_model"
 BASELINE_MODEL_DIR = PROJECT_ROOT / "baseline_model"

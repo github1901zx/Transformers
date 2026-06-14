@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sentiment_data import load_sentiment_dataset
 from model_artifacts import (
     require_fine_tuned_model,
+    require_baseline_artifacts,
     load_baseline_artifacts,
     FINE_TUNED_MODEL_DIR,
 )
@@ -31,6 +32,7 @@ def get_device():
 def load_models(device):
     """Загружает ранее сохранённые fine-tuned и baseline модели."""
     require_fine_tuned_model()
+    require_baseline_artifacts()
 
     model_ft = AutoModelForSequenceClassification.from_pretrained(FINE_TUNED_MODEL_DIR)
     tokenizer_ft = AutoTokenizer.from_pretrained(FINE_TUNED_MODEL_DIR)
