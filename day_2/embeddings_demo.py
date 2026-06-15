@@ -37,6 +37,7 @@ def analyze_single_text(text, model_name="bert-base-uncased"):
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name, output_hidden_states=True)
+    model.eval()
 
     inputs = tokenizer(text, return_tensors="pt")
     tokens = tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
@@ -86,6 +87,7 @@ def demo_similarity():
     model_name = "bert-base-uncased"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
+    model.eval()
 
     sentences = [
         "The bank of the river is beautiful.",
@@ -137,6 +139,7 @@ if __name__ == "__main__":
     model_name = "bert-base-uncased"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
+    model.eval()
 
     texts = [
         "Transformers are powerful.",

@@ -12,6 +12,7 @@ def get_attention_matrices(text, model_name="bert-base-uncased"):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     # output_attentions=True позволяет извлекать веса внимания
     model = AutoModel.from_pretrained(model_name, output_attentions=True)
+    model.eval()
     
     # 2. Подготовка входных данных
     inputs = tokenizer(text, return_tensors="pt")

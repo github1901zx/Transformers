@@ -1,2 +1,5 @@
+Model: distilbert-base-uncased
+Revision: 12040accade4e8a0f71eabdb258fecc2e7e948be
+Random seed: 42
 Final Validation F1: 0.9161
 Final Validation Accuracy: 0.9167
