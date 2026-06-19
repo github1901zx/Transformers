@@ -25,16 +25,19 @@ def is_lfs_pointer(path):
     return header == LFS_POINTER_PREFIX
 
 
-def _weights_path():
-    if WEIGHTS_FILE.is_file():
-        return WEIGHTS_FILE
-    if PYTORCH_WEIGHTS_FILE.is_file():
-        return PYTORCH_WEIGHTS_FILE
+def _weights_path(model_dir=None):
+    model_dir = Path(model_dir) if model_dir is not None else FINE_TUNED_MODEL_DIR
+    safetensors = model_dir / "model.safetensors"
+    pytorch_bin = model_dir / "pytorch_model.bin"
+    if safetensors.is_file():
+        return safetensors
+    if pytorch_bin.is_file():
+        return pytorch_bin
     return None
 
 
-def has_valid_weights():
-    path = _weights_path()
+def has_valid_weights(model_dir=None):
+    path = _weights_path(model_dir)
     if path is None:
         return False
     if is_lfs_pointer(path):
@@ -42,10 +45,11 @@ def has_valid_weights():
     return path.stat().st_size >= MIN_WEIGHTS_BYTES
 
 
-def require_fine_tuned_model():
+def require_fine_tuned_model(model_dir=None):
     """Проверяет, что fine-tuned чекпоинт содержит веса модели."""
-    if not has_valid_weights():
-        path = _weights_path()
+    model_dir = Path(model_dir) if model_dir is not None else FINE_TUNED_MODEL_DIR
+    if not has_valid_weights(model_dir):
+        path = _weights_path(model_dir)
         if path is not None and is_lfs_pointer(path):
             reason = (
                 "обнаружен Git LFS pointer вместо весов. "
@@ -56,10 +60,10 @@ def require_fine_tuned_model():
 
         raise FileNotFoundError(
             f"Fine-tuned модель не готова к загрузке ({reason}).\n"
-            f"Ожидается model.safetensors или pytorch_model.bin в {FINE_TUNED_MODEL_DIR}.\n"
+            f"Ожидается model.safetensors или pytorch_model.bin в {model_dir}.\n"
             "Сначала обучите и сохраните модель: python day_5/fine_tuning.py"
         )
-    return FINE_TUNED_MODEL_DIR
+    return model_dir
 
 
 def has_baseline_artifacts():

@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from sentiment_data import load_sentiment_dataset
+from sentiment_data import load_sentiment_dataset, get_num_labels, get_target_names
 from model_config import MODEL_NAME, MODEL_REVISION, RANDOM_SEED
 from model_artifacts import has_valid_weights, WEIGHTS_FILE
 
@@ -120,6 +120,10 @@ def run_fine_tuning(save_path=None, num_epochs=3):
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, revision=MODEL_REVISION)
     train_texts, val_texts, train_labels, val_labels = prepare_data()
 
+    all_labels = train_labels + val_labels
+    num_labels = get_num_labels(all_labels)
+    label_names = get_target_names(all_labels)
+
     train_dataset = TextDataset(train_texts, train_labels, tokenizer)
     val_dataset = TextDataset(val_texts, val_labels, tokenizer)
 
@@ -129,7 +133,7 @@ def run_fine_tuning(save_path=None, num_epochs=3):
     val_loader = DataLoader(val_dataset, batch_size=16)
 
     model = AutoModelForSequenceClassification.from_pretrained(
-        MODEL_NAME, num_labels=2, revision=MODEL_REVISION
+        MODEL_NAME, num_labels=num_labels, revision=MODEL_REVISION
     )
     model.to(device)
 
@@ -150,10 +154,13 @@ def run_fine_tuning(save_path=None, num_epochs=3):
     print("\nSaving model and metrics...")
     save_path.mkdir(parents=True, exist_ok=True)
 
+    model.config.id2label = {i: name for i, name in enumerate(label_names)}
+    model.config.label2id = {name: i for i, name in enumerate(label_names)}
+
     model.save_pretrained(save_path)
     tokenizer.save_pretrained(save_path)
 
-    if not has_valid_weights():
+    if not has_valid_weights(save_path):
         raise RuntimeError(
             f"Чекпоинт сохранён неполностью: отсутствует {WEIGHTS_FILE.name}. "
             f"Ожидается model.safetensors или pytorch_model.bin в {save_path}."
@@ -162,6 +169,7 @@ def run_fine_tuning(save_path=None, num_epochs=3):
     with open(RESULTS_PATH, 'w') as f:
         f.write(f'Model: {MODEL_NAME}\n')
         f.write(f'Revision: {MODEL_REVISION}\n')
+        f.write(f'Num labels: {num_labels}\n')
         f.write(f'Random seed: {RANDOM_SEED}\n')
         f.write(f'Final Validation F1: {val_f1:.4f}\n')
         f.write(f'Final Validation Accuracy: {val_acc:.4f}\n')

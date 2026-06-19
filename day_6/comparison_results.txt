@@ -6,8 +6,8 @@ Fine-tuned F1 (macro): 0.9161
 Fine-tuned classification report:
               precision    recall  f1-score   support
 
-    Negative       0.86      1.00      0.92         6
-    Positive       1.00      0.83      0.91         6
+    Negative       1.00      0.83      0.91         6
+    Positive       0.86      1.00      0.92         6
 
     accuracy                           0.92        12
    macro avg       0.93      0.92      0.92        12

@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from sentiment_data import load_sentiment_dataset
+from sentiment_data import load_sentiment_dataset, get_target_names
 from model_artifacts import (
     require_fine_tuned_model,
     require_baseline_artifacts,
@@ -136,6 +136,7 @@ def build_confusion_matrices(model_ft, tokenizer_ft, baseline_model, baseline_fe
 
     test_texts = test_df['text'].tolist()
     test_labels = test_df['label'].tolist()
+    target_names = get_target_names(test_labels)
 
     print("Получение предсказаний для тестового набора...")
     preds_ft_all = predict_fine_tuned(test_texts, model_ft, tokenizer_ft, device)
@@ -151,12 +152,18 @@ def build_confusion_matrices(model_ft, tokenizer_ft, baseline_model, baseline_fe
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-    sns.heatmap(cm_ft, annot=True, fmt='d', ax=ax1, cmap='Blues')
+    sns.heatmap(
+        cm_ft, annot=True, fmt='d', ax=ax1, cmap='Blues',
+        xticklabels=target_names, yticklabels=target_names,
+    )
     ax1.set_title('Fine-tuned Confusion Matrix')
     ax1.set_xlabel('Predicted')
     ax1.set_ylabel('True')
 
-    sns.heatmap(cm_baseline, annot=True, fmt='d', ax=ax2, cmap='Greens')
+    sns.heatmap(
+        cm_baseline, annot=True, fmt='d', ax=ax2, cmap='Greens',
+        xticklabels=target_names, yticklabels=target_names,
+    )
     ax2.set_title('Baseline Confusion Matrix')
     ax2.set_xlabel('Predicted')
     ax2.set_ylabel('True')
@@ -171,9 +178,9 @@ def build_confusion_matrices(model_ft, tokenizer_ft, baseline_model, baseline_fe
     acc_baseline = accuracy_score(test_labels, y_pred_baseline)
     f1_baseline = f1_score(test_labels, y_pred_baseline, average='macro')
 
-    report_ft = classification_report(test_labels, y_pred_ft, target_names=['Negative', 'Positive'])
+    report_ft = classification_report(test_labels, y_pred_ft, target_names=target_names)
     report_baseline = classification_report(
-        test_labels, y_pred_baseline, target_names=['Negative', 'Positive']
+        test_labels, y_pred_baseline, target_names=target_names
     )
 
     print(f"\nFine-tuned Accuracy: {acc_ft:.4f}")
